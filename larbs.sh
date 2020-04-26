@@ -14,8 +14,8 @@ while getopts ":a:r:b:p:h" o; do case "${o}" in
 	*) printf "Invalid option: -%s\\n" "$OPTARG" && exit ;;
 esac done
 
-[ -z "$dotfilesrepo" ] && dotfilesrepo="https://github.com/lukesmithxyz/voidrice.git"
-[ -z "$progsfile" ] && progsfile="https://raw.githubusercontent.com/LukeSmithxyz/LARBS/master/progs.csv"
+[ -z "$dotfilesrepo" ] && dotfilesrepo="https://github.com/davidsierradz/voidrice.git"
+[ -z "$progsfile" ] && progsfile="https://raw.githubusercontent.com/davidsierradz/LARBS/master/progs.csv"
 [ -z "$aurhelper" ] && aurhelper="yay"
 [ -z "$repobranch" ] && repobranch="master"
 
@@ -70,7 +70,7 @@ adduserandpass() { \
 	# Adds user `$name` with password $pass1.
 	dialog --infobox "Adding user \"$name\"..." 4 50
 	useradd -m -g wheel -s /bin/bash "$name" >/dev/null 2>&1 ||
-	usermod -a -G wheel "$name" && mkdir -p /home/"$name" && chown "$name":wheel /home/"$name"
+	usermod -a -G wheel,input,video "$name" && mkdir -p /home/"$name" && chown "$name":wheel /home/"$name"
 	repodir="/home/$name/.local/src"; mkdir -p "$repodir"; chown -R "$name":wheel $(dirname "$repodir")
 	echo "$name:$pass1" | chpasswd
 	unset pass1 pass2 ;}
@@ -92,6 +92,21 @@ manualinstall() { # Installs $1 manually if not installed. Used only for AUR hel
 	curl -sO https://aur.archlinux.org/cgit/aur.git/snapshot/"$1".tar.gz &&
 	sudo -u "$name" tar -xvf "$1".tar.gz >/dev/null 2>&1 &&
 	cd "$1" &&
+	sudo -u "$name" makepkg --noconfirm -si >/dev/null 2>&1
+	cd /tmp || return) ;}
+
+manualinstallfrompkgbuild() { # Installs $1 manually from PKGBUILD.
+	[ -f "/usr/bin/$1" ] || (
+	dialog --infobox "Installing \"$1\", from custom PKGBUILD..." 4 50
+	cd /tmp || exit
+	rm -rf /tmp/"$1"*
+	mkdir "$1" && chmod -R 777 "$1" && cd "$1"
+	OIFS=$IFS
+	IFS='!'
+	for x in $2; do
+		curl -sJO "$x"
+	done
+	IFS=$OIFS
 	sudo -u "$name" makepkg --noconfirm -si >/dev/null 2>&1
 	cd /tmp || return) ;}
 
@@ -126,13 +141,14 @@ installationloop() { \
 	([ -f "$progsfile" ] && cp "$progsfile" /tmp/progs.csv) || curl -Ls "$progsfile" | sed '/^#/d' | eval grep "$grepseq" > /tmp/progs.csv
 	total=$(wc -l < /tmp/progs.csv)
 	aurinstalled=$(pacman -Qqm)
-	while IFS=, read -r tag program comment; do
+	while IFS=, read -r tag program comment optfiles; do
 		n=$((n+1))
 		echo "$comment" | grep "^\".*\"$" >/dev/null 2>&1 && comment="$(echo "$comment" | sed "s/\(^\"\|\"$\)//g")"
 		case "$tag" in
 			"A") aurinstall "$program" "$comment" ;;
 			"G") gitmakeinstall "$program" "$comment" ;;
 			"P") pipinstall "$program" "$comment" ;;
+			"M") manualinstallfrompkgbuild "$program" "$optfiles" ;;
 			*) maininstall "$program" "$comment" ;;
 		esac
 	done < /tmp/progs.csv ;}
@@ -147,9 +163,19 @@ putgitrepo() { # Downloads a gitrepo $1 and places the files in $2 only overwrit
 	sudo -u "$name" cp -rfT "$dir" "$2"
 	}
 
+serviceinit() { for service in "$@"; do
+	dialog --infobox "Enabling \"$service\"..." 4 40
+	systemctl enable "$service"
+	systemctl start "$service"
+	done ;}
+
 systembeepoff() { dialog --infobox "Getting rid of that retarded error beep sound..." 10 50
 	rmmod pcspkr
 	echo "blacklist pcspkr" > /etc/modprobe.d/nobeep.conf ;}
+
+resetpulse() { dialog --infobox "Reseting Pulseaudio..." 4 50
+	killall pulseaudio
+	sudo -n "$name" pulseaudio --start ;}
 
 finalize(){ \
 	dialog --infobox "Preparing welcome message..." 4 50
@@ -182,7 +208,7 @@ preinstallmsg || error "User exited."
 adduserandpass || error "Error adding username and/or password."
 
 # Refresh Arch keyrings.
-# refreshkeys || error "Error automatically refreshing Arch keyring. Consider doing so manually."
+refreshkeys || error "Error automatically refreshing Arch keyring. Consider doing so manually."
 
 dialog --title "LARBS Installation" --infobox "Installing \`basedevel\` and \`git\` for installing other software required for the installation of other programs." 5 70
 installpkg curl
@@ -226,8 +252,44 @@ rm -f "/home/$name/README.md" "/home/$name/LICENSE"
 git update-index --assume-unchanged "/home/$name/README.md"
 git update-index --assume-unchanged "/home/$name/LICENSE"
 
+# Install the LARBS Firefox profile in ~/.mozilla/firefox/
+# putgitrepo "https://github.com/LukeSmithxyz/mozillarbs.git" "/home/$name/.mozilla/firefox"
+
+# Pulseaudio, if/when initially installed, often needs a restart to work immediately.
+[ -f /usr/bin/pulseaudio ] && resetpulse
+
+# Enable services here.
+# serviceinit NetworkManager cronie udevmon systemd-timesyncd.service
+
 # Most important command! Get rid of the beep!
 systembeepoff
+
+# TODO: Implement function to make symbolic links.
+sudo ln -s /etc/fonts/conf.avail/10-sub-pixel-rgb.conf /etc/fonts/conf.d
+sudo ln -s /etc/fonts/conf.avail/11-lcdfilter-default.conf /etc/fonts/conf.d
+sudo ln -s /etc/fonts/conf.avail/75-joypixels.conf /etc/fonts/conf.d/75-joypixels.conf
+sudo ln -s /usr/share/vim/vimfiles/plugin/fzf.vim /usr/share/nvim/runtime/plugin/
+
+# TODO: Add npm to installation function.
+# npm install -g https://github.com/mozilla/readability.git
+# npm install -g qutejs
+# npm install -g jsdom canvas
+# npm install -g markdownlint-cli
+# npm install -g ndb
+# npm install -g prettier
+# npm install -g dive
+# npm install -g lerna
+# npm install -g create-react-app
+# npm install -g eslint
+# npm install -g madge
+
+# TODO: Implement function to load modules.
+echo "i2c-dev" > /etc/modules-load.d/i2c-dev.conf
+
+# This line, overwriting the `newperms` command above will allow the user to run
+# serveral important commands, `shutdown`, `reboot`, updating, etc. without a password.
+newperms "%wheel ALL=(ALL) ALL #LARBS
+%wheel ALL=(ALL) NOPASSWD: /usr/bin/shutdown,/usr/bin/reboot,/usr/bin/systemctl suspend,/usr/bin/wifi-menu,/usr/bin/mount,/usr/bin/umount,/usr/bin/pacman -Syu,/usr/bin/pacman -Syyu,/usr/bin/packer -Syu,/usr/bin/packer -Syyu,/usr/bin/systemctl restart NetworkManager,/usr/bin/rc-service NetworkManager restart,/usr/bin/pacman -Syyu --noconfirm,/usr/bin/loadkeys,/usr/bin/yay,/usr/bin/pacman -Syyuw --noconfirm,/usr/bin/xbacklight,/usr/bin/ddcutil"
 
 # Make zsh the default shell for the user.
 sed -i "s/^$name:\(.*\):\/bin\/.*/$name:\1:\/bin\/zsh/" /etc/passwd

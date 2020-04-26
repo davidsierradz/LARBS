@@ -6,7 +6,7 @@
 On an Arch based distribution as root, run the following:
 
 ```
-curl -LO larbs.xyz/larbs.sh
+curl -LO https://raw.githubusercontent.com/davidsierradz/LARBS/master/larbs.sh
 sh larbs.sh
 ```
 
@@ -75,3 +75,34 @@ effectively with the `newperms` function. At the end of installation,
 `newperms` removes those settings, giving the user the ability to run only
 several basic sudo commands without a password (`shutdown`, `reboot`,
 `pacman -Syu`).
+
+## To-do list
+
+- Provide documentation on how to update dotfiles from remote repository.
+- Enable tap to click.
+- Keyboard luminosity script.
+- Add notification icons?
+
+## Manual
+
+Replace `freetype2` with `freetype2-cleartype`:
+
+`yay -S freetype2-cleartype`
+
+Load syncthing service:
+
+`systemctl enable --now syncthing@neuromante`
+
+mpv-mpris configuration:
+
+```sh
+mkdir -p $HOME/.config/mpv/scripts
+ln -s /usr/lib/mpv/mpris.so $HOME/.config/mpv/scripts/mpris.so
+```
+
+set gtk programs default terminal:
+
+```sh
+gsettings set org.gnome.desktop.default-applications.terminal exec /usr/bin/kitty
+gsettings set org.gnome.desktop.default-applications.terminal exec-arg '-e'
+```
