@@ -14,10 +14,10 @@ while getopts ":a:r:b:p:h" o; do case "${o}" in
 	*) printf "Invalid option: -%s\\n" "$OPTARG" && exit ;;
 esac done
 
-[ -z "$dotfilesrepo" ] && dotfilesrepo="https://github.com/davidsierradz/voidrice.git"
+[ -z "$dotfilesrepo" ] && dotfilesrepo="https://github.com/davidsierradz/new-dotfiles.git"
 [ -z "$progsfile" ] && progsfile="https://raw.githubusercontent.com/davidsierradz/LARBS/master/progs.csv"
 [ -z "$aurhelper" ] && aurhelper="yay"
-[ -z "$repobranch" ] && repobranch="master"
+[ -z "$repobranch" ] && repobranch="stow"
 
 ### FUNCTIONS ###
 
@@ -70,8 +70,8 @@ adduserandpass() { \
 	# Adds user `$name` with password $pass1.
 	dialog --infobox "Adding user \"$name\"..." 4 50
 	useradd -m -s /bin/bash "$name" >/dev/null 2>&1 ||
-	usermod -a -G wheel,input,video,docker "$name" && mkdir -p /home/"$name" && chown "$name":wheel /home/"$name"
-	repodir="/home/$name/.local/src"; mkdir -p "$repodir"; chown -R "$name":wheel $(dirname "$repodir")
+	usermod -a -G wheel,input,video,docker "$name" && mkdir -p /home/"$name" && chown "$name":"$name" /home/"$name"
+	repodir="/home/$name/.local/src"; mkdir -p "$repodir"; chown -R "$name":"$name" $(dirname "$repodir")
 	echo "$name:$pass1" | chpasswd
 	unset pass1 pass2 ;}
 
@@ -156,11 +156,11 @@ installationloop() { \
 putgitrepo() { # Downloads a gitrepo $1 and places the files in $2 only overwriting conflicts
 	dialog --infobox "Downloading and installing config files..." 4 60
 	[ -z "$3" ] && branch="master" || branch="$repobranch"
-	dir=$(mktemp -d)
+	dir="$2/dotfiles"
 	[ ! -d "$2" ] && mkdir -p "$2"
-	chown -R "$name":wheel "$dir" "$2"
+	[ ! -d "$dir" ] && mkdir -p "$dir"
+	chown -R "$name":"$name" "$dir" "$2"
 	sudo -u "$name" git clone --recursive -b "$branch" --depth 1 "$1" "$dir" >/dev/null 2>&1
-	sudo -u "$name" cp -rfT "$dir" "$2"
 	}
 
 serviceinit() { for service in "$@"; do
