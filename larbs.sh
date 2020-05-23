@@ -267,7 +267,6 @@ systembeepoff
 # TODO: Implement function to make symbolic links.
 sudo ln -s /etc/fonts/conf.avail/10-sub-pixel-rgb.conf /etc/fonts/conf.d
 sudo ln -s /etc/fonts/conf.avail/11-lcdfilter-default.conf /etc/fonts/conf.d
-sudo ln -s /etc/fonts/conf.avail/75-joypixels.conf /etc/fonts/conf.d/75-joypixels.conf
 sudo ln -s /usr/share/vim/vimfiles/plugin/fzf.vim /usr/share/nvim/runtime/plugin/
 
 # TODO: Add npm to installation function.
@@ -285,11 +284,6 @@ sudo ln -s /usr/share/vim/vimfiles/plugin/fzf.vim /usr/share/nvim/runtime/plugin
 
 # TODO: Implement function to load modules.
 echo "i2c-dev" > /etc/modules-load.d/i2c-dev.conf
-
-# This line, overwriting the `newperms` command above will allow the user to run
-# serveral important commands, `shutdown`, `reboot`, updating, etc. without a password.
-newperms "%wheel ALL=(ALL) ALL #LARBS
-%wheel ALL=(ALL) NOPASSWD: /usr/bin/shutdown,/usr/bin/reboot,/usr/bin/systemctl suspend,/usr/bin/wifi-menu,/usr/bin/mount,/usr/bin/umount,/usr/bin/pacman -Syu,/usr/bin/pacman -Syyu,/usr/bin/packer -Syu,/usr/bin/packer -Syyu,/usr/bin/systemctl restart NetworkManager,/usr/bin/rc-service NetworkManager restart,/usr/bin/pacman -Syyu --noconfirm,/usr/bin/loadkeys,/usr/bin/yay,/usr/bin/pacman -Syyuw --noconfirm,/usr/bin/xbacklight,/usr/bin/ddcutil"
 
 # Make zsh the default shell for the user.
 sed -i "s/^$name:\(.*\):\/bin\/\S*/$name:\1:\/bin\/zsh/" /etc/passwd
