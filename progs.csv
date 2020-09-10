@@ -126,6 +126,7 @@ A,python-ueberzug,"generates image previews in ranger and other terminal program
 A,qutebrowser-git,"a nice browser."
 A,reredirect-git,"Tool to dynamicly redirect outputs of a running process"
 A,rofi-greenclip,"clipboard manager."
+A,vit-git,"Taskwarrior frontend."
 A,wmfocus,"visually focus window by label."
 A,xiccd,"display icc profiles."
 A,zprint-bin,"formatter for clojure."
